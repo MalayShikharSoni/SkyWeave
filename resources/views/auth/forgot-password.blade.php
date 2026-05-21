@@ -1,6 +1,9 @@
 <x-guest-layout>
-    <div class="mb-4 text-sm text-gray-600">
-        {{ __('Forgot your password? No problem. Just let us know your email address and we will email you a password reset link that will allow you to choose a new one.') }}
+    @section('title', 'Forgot Password')
+
+    <div class="text-center mb-6">
+        <h2 class="text-xl font-bold text-white">Reset Password</h2>
+        <p class="text-sm text-sky-400 mt-1">Enter your email to receive a reset link</p>
     </div>
 
     <!-- Session Status -->
@@ -12,14 +15,20 @@
         <!-- Email Address -->
         <div>
             <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autofocus />
+            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autofocus placeholder="pilot@skyweave.io" />
             <x-input-error :messages="$errors->get('email')" class="mt-2" />
         </div>
 
-        <div class="flex items-center justify-end mt-4">
+        <div class="mt-6">
             <x-primary-button>
-                {{ __('Email Password Reset Link') }}
+                {{ __('Send Reset Link') }}
             </x-primary-button>
+        </div>
+
+        <div class="mt-6 text-center">
+            <a href="{{ route('login') }}" class="text-sm text-sky-400 hover:text-accent transition-colors duration-200">
+                &larr; Back to sign in
+            </a>
         </div>
     </form>
 </x-guest-layout>

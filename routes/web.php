@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\WaypointController;
+use App\Http\Controllers\NavaidController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -16,31 +18,19 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    // === Waypoints (placeholder routes for Phase 1) ===
-    Route::get('/waypoints', function () {
-        return view('placeholder', ['title' => 'Waypoints', 'description' => 'Waypoint management coming in Phase 3']);
-    })->name('waypoints.index');
+    // === Waypoints ===
+    Route::resource('waypoints', WaypointController::class)->except(['show']);
 
-    Route::get('/waypoints/create', function () {
-        return view('placeholder', ['title' => 'Add Waypoint', 'description' => 'Waypoint creation coming in Phase 3']);
-    })->name('waypoints.create');
+    // === NAVAIDs ===
+    Route::resource('navaids', NavaidController::class)->except(['show']);
 
-    // === NAVAIDs (placeholder routes for Phase 1) ===
-    Route::get('/navaids', function () {
-        return view('placeholder', ['title' => 'NAVAIDs', 'description' => 'NAVAID management coming in Phase 4']);
-    })->name('navaids.index');
-
-    Route::get('/navaids/create', function () {
-        return view('placeholder', ['title' => 'Add NAVAID', 'description' => 'NAVAID creation coming in Phase 4']);
-    })->name('navaids.create');
-
-    // === ATS Routes (placeholder routes for Phase 1) ===
+    // === ATS Routes (placeholder routes — Phase 4) ===
     Route::get('/routes', function () {
-        return view('placeholder', ['title' => 'ATS Routes', 'description' => 'Route management coming in Phase 5']);
+        return view('placeholder', ['title' => 'ATS Routes', 'description' => 'Route management coming in Phase 4']);
     })->name('routes.index');
 
     Route::get('/routes/create', function () {
-        return view('placeholder', ['title' => 'Build Route', 'description' => 'Route builder coming in Phase 5']);
+        return view('placeholder', ['title' => 'Build Route', 'description' => 'Route builder coming in Phase 4']);
     })->name('routes.create');
 });
 
