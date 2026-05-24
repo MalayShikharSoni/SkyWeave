@@ -214,6 +214,81 @@
                     </div>
                 </div>
             </div>
+
+            {{-- Route Map Visualization --}}
+            <div class="mt-6 glass-card overflow-hidden">
+                <div class="px-6 py-4 border-b border-sky-800/40 flex items-center justify-between">
+                    <h3 class="text-sm font-semibold text-sky-300 uppercase tracking-wider flex items-center gap-2">
+                        <svg class="w-4 h-4 text-route" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
+                        </svg>
+                        Route Visualization
+                    </h3>
+                </div>
+                <div id="route-map" class="w-full h-[400px] bg-sky-950 z-0"></div>
+            </div>
         </div>
     </div>
+
+    @push('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const waypoints = @json($route->waypoints);
+            
+            if (waypoints.length === 0) return;
+
+            // Initialize map
+            const map = L.map('route-map');
+
+            // Add dark theme base layer
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+                subdomains: 'abcd',
+                maxZoom: 20
+            }).addTo(map);
+
+            const latLngs = [];
+
+            // Add markers and build polyline coordinates
+            waypoints.forEach(wp => {
+                const latLng = [wp.latitude, wp.longitude];
+                latLngs.push(latLng);
+
+                // Waypoint marker
+                const marker = L.circleMarker(latLng, {
+                    radius: 5,
+                    fillColor: '#38bdf8',
+                    color: '#0ea5e9',
+                    weight: 2,
+                    opacity: 1,
+                    fillOpacity: 0.9
+                });
+                marker.bindTooltip(`<b>${wp.identifier}</b><br><span style="color:#8aa4d0">${wp.type}</span>`, {
+                    permanent: true,
+                    direction: 'right',
+                    className: 'bg-transparent border-none shadow-none text-sky-300 font-mono text-xs',
+                    offset: [5, 0]
+                });
+                marker.addTo(map);
+            });
+
+            // Draw route polyline
+            if (latLngs.length > 1) {
+                const polyline = L.polyline(latLngs, {
+                    color: '#f59e0b', // amber route color
+                    weight: 3,
+                    opacity: 0.8,
+                    dashArray: '8, 8',
+                    lineJoin: 'round'
+                }).addTo(map);
+
+                // Fit map to show entire route with padding
+                map.fitBounds(polyline.getBounds(), { padding: [50, 50] });
+            } else {
+                // If only 1 waypoint, just center on it
+                map.setView(latLngs[0], 6);
+            }
+        });
+    </script>
+    @endpush
 </x-app-layout>

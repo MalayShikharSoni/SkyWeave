@@ -158,4 +158,27 @@
     .text-gradient {
         @apply bg-clip-text text-transparent bg-gradient-to-r from-accent-300 to-accent-500;
     }
+
+    /* Leaflet.js Dark Theme Overrides */
+    .leaflet-container {
+        @apply bg-sky-950/80 font-sans;
+    }
+    .leaflet-popup-content-wrapper, .leaflet-popup-tip {
+        @apply bg-sky-900 border border-sky-700/50 text-sky-100 shadow-glow;
+    }
+    .leaflet-popup-content {
+        @apply m-0 p-3;
+    }
+    .leaflet-tooltip {
+        @apply bg-sky-900/90 border border-sky-700/50 text-sky-100 shadow-lg rounded-lg px-2 py-1;
+    }
+    .leaflet-control-zoom a {
+        @apply bg-sky-800 text-sky-300 border-sky-700 !important;
+    }
+    .leaflet-control-zoom a:hover {
+        @apply bg-sky-700 text-accent !important;
+    }
+    .leaflet-bar {
+        @apply border-sky-700 border shadow-lg !important;
+    }
 }
