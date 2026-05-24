@@ -3,6 +3,8 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\WaypointController;
 use App\Http\Controllers\NavaidController;
+use App\Http\Controllers\ATSRouteController;
+use App\Http\Controllers\DraftRouteController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -24,14 +26,17 @@ Route::middleware('auth')->group(function () {
     // === NAVAIDs ===
     Route::resource('navaids', NavaidController::class)->except(['show']);
 
-    // === ATS Routes (placeholder routes — Phase 4) ===
-    Route::get('/routes', function () {
-        return view('placeholder', ['title' => 'ATS Routes', 'description' => 'Route management coming in Phase 4']);
-    })->name('routes.index');
+    // === Draft Route (session-based route builder — must be before resource) ===
+    Route::prefix('routes/draft')->name('draft.')->group(function () {
+        Route::get('/', [DraftRouteController::class, 'getDraft'])->name('get');
+        Route::post('/add', [DraftRouteController::class, 'addWaypoint'])->name('add');
+        Route::post('/remove', [DraftRouteController::class, 'removeWaypoint'])->name('remove');
+        Route::post('/reorder', [DraftRouteController::class, 'reorderWaypoints'])->name('reorder');
+        Route::post('/clear', [DraftRouteController::class, 'clearDraft'])->name('clear');
+    });
 
-    Route::get('/routes/create', function () {
-        return view('placeholder', ['title' => 'Build Route', 'description' => 'Route builder coming in Phase 4']);
-    })->name('routes.create');
+    // === ATS Routes ===
+    Route::resource('routes', ATSRouteController::class);
 });
 
 require __DIR__.'/auth.php';
