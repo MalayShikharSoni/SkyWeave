@@ -56,7 +56,13 @@ flowchart TD
 
 ### 4. The Data API (`MapApiController.php`)
 
-Leaflet.js needs raw JSON data, not HTML pages. The `MapApiController` provides endpoints like `/api/map/waypoints`.
+The Google Maps JavaScript API frontend needs raw JSON data, not HTML pages. The `MapApiController` provides lightweight endpoints that return pure JSON:
+
+| Endpoint | Data Returned | Google Maps Usage |
+| :--- | :--- | :--- |
+| `/api/map/waypoints` | Waypoint coordinates + identifiers | Rendered as SVG circle `google.maps.Marker` icons |
+| `/api/map/navaids` | NAVAID coordinates + type + name | Rendered as color-coded hollow circle markers |
+| `/api/map/routes` | Route paths with ordered waypoints | Rendered as dashed `google.maps.Polyline` objects |
 
 > [!IMPORTANT]
 > **Pivot Ordering**

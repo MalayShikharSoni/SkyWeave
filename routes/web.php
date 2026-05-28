@@ -39,7 +39,7 @@ Route::middleware('auth')->group(function () {
     // === ATS Routes ===
     Route::resource('routes', ATSRouteController::class);
 
-    // === Map API (JSON endpoints for Leaflet.js) ===
+    // === Map API (JSON endpoints for Google Maps JavaScript API) ===
     Route::prefix('api/map')->name('api.map.')->group(function () {
         Route::get('/waypoints', [MapApiController::class, 'waypoints'])->name('waypoints');
         Route::get('/navaids', [MapApiController::class, 'navaids'])->name('navaids');

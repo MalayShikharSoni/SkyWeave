@@ -159,26 +159,26 @@
         @apply bg-clip-text text-transparent bg-gradient-to-r from-accent-300 to-accent-500;
     }
 
-    /* Leaflet.js Dark Theme Overrides */
-    .leaflet-container {
-        @apply bg-sky-950/80 font-sans;
+    /* Google Maps Dark Theme Overrides */
+    .gm-style .gm-style-iw-d {
+        overflow: auto !important;
+        background: theme('colors.sky.900');
+        color: theme('colors.sky.100');
     }
-    .leaflet-popup-content-wrapper, .leaflet-popup-tip {
-        @apply bg-sky-900 border border-sky-700/50 text-sky-100 shadow-glow;
+    .gm-style .gm-style-iw-c {
+        background: theme('colors.sky.900') !important;
+        border: 1px solid rgba(56, 119, 169, 0.5) !important;
+        border-radius: 0.75rem !important;
+        box-shadow: 0 0 15px rgba(14, 165, 233, 0.1) !important;
+        padding: 0 !important;
     }
-    .leaflet-popup-content {
-        @apply m-0 p-3;
+    .gm-style .gm-style-iw-tc::after {
+        background: theme('colors.sky.900') !important;
     }
-    .leaflet-tooltip {
-        @apply bg-sky-900/90 border border-sky-700/50 text-sky-100 shadow-lg rounded-lg px-2 py-1;
+    .gm-style-iw button[aria-label="Close"] {
+        display: none !important;
     }
-    .leaflet-control-zoom a {
-        @apply bg-sky-800 text-sky-300 border-sky-700 !important;
-    }
-    .leaflet-control-zoom a:hover {
-        @apply bg-sky-700 text-accent !important;
-    }
-    .leaflet-bar {
-        @apply border-sky-700 border shadow-lg !important;
+    .gm-style .gm-style-iw-d > div {
+        padding: 8px 12px;
     }
 }

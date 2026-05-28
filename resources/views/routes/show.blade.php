@@ -232,63 +232,144 @@
 
     @push('scripts')
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        function initRouteMap() {
             const waypoints = @json($route->waypoints);
-            
+
             if (waypoints.length === 0) return;
 
-            // Initialize map
-            const map = L.map('route-map');
+            // SkyWeave dark theme style
+            const darkStyle = [
+                { elementType: 'geometry', stylers: [{ color: '#0c1a2e' }] },
+                { elementType: 'labels.text.stroke', stylers: [{ color: '#0c1a2e' }] },
+                { elementType: 'labels.text.fill', stylers: [{ color: '#4a7ab5' }] },
+                { featureType: 'administrative', elementType: 'geometry.stroke', stylers: [{ color: '#1e3a5f' }] },
+                { featureType: 'administrative.country', elementType: 'geometry.stroke', stylers: [{ color: '#2d5a8a' }] },
+                { featureType: 'administrative.land_parcel', stylers: [{ visibility: 'off' }] },
+                { featureType: 'administrative.province', elementType: 'geometry.stroke', stylers: [{ color: '#1e3a5f' }] },
+                { featureType: 'landscape', elementType: 'geometry', stylers: [{ color: '#0f2240' }] },
+                { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+                { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#162d50' }] },
+                { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#1a3460' }] },
+                { featureType: 'road', elementType: 'labels', stylers: [{ visibility: 'off' }] },
+                { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#1a3a65' }] },
+                { featureType: 'transit', stylers: [{ visibility: 'off' }] },
+                { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#071525' }] },
+                { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#1a3a5c' }] },
+            ];
 
-            // Add dark theme base layer
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-                attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-                subdomains: 'abcd',
-                maxZoom: 20
-            }).addTo(map);
-
-            const latLngs = [];
-
-            // Add markers and build polyline coordinates
-            waypoints.forEach(wp => {
-                const latLng = [wp.latitude, wp.longitude];
-                latLngs.push(latLng);
-
-                // Waypoint marker
-                const marker = L.circleMarker(latLng, {
-                    radius: 5,
-                    fillColor: '#38bdf8',
-                    color: '#0ea5e9',
-                    weight: 2,
-                    opacity: 1,
-                    fillOpacity: 0.9
-                });
-                marker.bindTooltip(`<b>${wp.identifier}</b><br><span style="color:#8aa4d0">${wp.type}</span>`, {
-                    permanent: true,
-                    direction: 'right',
-                    className: 'bg-transparent border-none shadow-none text-sky-300 font-mono text-xs',
-                    offset: [5, 0]
-                });
-                marker.addTo(map);
+            const map = new google.maps.Map(document.getElementById('route-map'), {
+                center: { lat: 22.0, lng: 79.0 },
+                zoom: 5,
+                styles: darkStyle,
+                disableDefaultUI: false,
+                zoomControl: true,
+                mapTypeControl: false,
+                streetViewControl: false,
+                fullscreenControl: false,
+                backgroundColor: '#0c1a2e',
             });
 
-            // Draw route polyline
-            if (latLngs.length > 1) {
-                const polyline = L.polyline(latLngs, {
-                    color: '#f59e0b', // amber route color
-                    weight: 3,
-                    opacity: 0.8,
-                    dashArray: '8, 8',
-                    lineJoin: 'round'
-                }).addTo(map);
-
-                // Fit map to show entire route with padding
-                map.fitBounds(polyline.getBounds(), { padding: [50, 50] });
-            } else {
-                // If only 1 waypoint, just center on it
-                map.setView(latLngs[0], 6);
+            // Helper: create SVG circle icon
+            function createCircleIcon(fillColor, strokeColor, radius) {
+                const size = radius * 2 + 4;
+                const cx = size / 2;
+                const cy = size / 2;
+                const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
+                    <circle cx="${cx}" cy="${cy}" r="${radius}" fill="${fillColor}" stroke="${strokeColor}" stroke-width="2"/>
+                </svg>`;
+                return {
+                    url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
+                    scaledSize: new google.maps.Size(size, size),
+                    anchor: new google.maps.Point(cx, cy),
+                };
             }
-        });
+
+            const bounds = new google.maps.LatLngBounds();
+            const path = [];
+
+            // Add waypoint markers with permanent labels
+            waypoints.forEach(wp => {
+                const position = { lat: parseFloat(wp.latitude), lng: parseFloat(wp.longitude) };
+                bounds.extend(position);
+                path.push(position);
+
+                // Circle marker
+                const marker = new google.maps.Marker({
+                    position: position,
+                    map: map,
+                    icon: createCircleIcon('#38bdf8', '#0ea5e9', 5),
+                    title: wp.identifier,
+                });
+
+                // Permanent label overlay
+                const labelDiv = document.createElement('div');
+                labelDiv.innerHTML = `<b>${wp.identifier}</b><br><span style="color:#8aa4d0">${wp.type}</span>`;
+                labelDiv.style.cssText = 'font-family:JetBrains Mono,monospace;font-size:11px;color:#7dd3fc;white-space:nowrap;text-shadow:0 1px 3px rgba(0,0,0,0.8);pointer-events:none;';
+
+                // Create label as an OverlayView
+                class WaypointLabel extends google.maps.OverlayView {
+                    constructor(pos, div) {
+                        super();
+                        this.pos = pos;
+                        this.div = div;
+                    }
+                    onAdd() {
+                        this.getPanes().overlayLayer.appendChild(this.div);
+                    }
+                    draw() {
+                        const projection = this.getProjection();
+                        const point = projection.fromLatLngToDivPixel(new google.maps.LatLng(this.pos.lat, this.pos.lng));
+                        if (point) {
+                            this.div.style.position = 'absolute';
+                            this.div.style.left = (point.x + 8) + 'px';
+                            this.div.style.top = (point.y - 8) + 'px';
+                        }
+                    }
+                    onRemove() {
+                        this.div.parentNode?.removeChild(this.div);
+                    }
+                }
+
+                const label = new WaypointLabel(position, labelDiv);
+                label.setMap(map);
+            });
+
+            // Draw route polyline (dashed amber)
+            if (path.length > 1) {
+                const polyline = new google.maps.Polyline({
+                    path: path,
+                    geodesic: true,
+                    strokeColor: '#f59e0b',
+                    strokeOpacity: 0,
+                    strokeWeight: 3,
+                    map: map,
+                    icons: [{
+                        icon: { path: 'M 0,-1 0,1', strokeOpacity: 0.8, scale: 3 },
+                        offset: '0',
+                        repeat: '16px',
+                    }],
+                });
+
+                // Fit map to route bounds with padding
+                map.fitBounds(bounds, { top: 50, right: 50, bottom: 50, left: 50 });
+            } else {
+                map.setCenter(path[0]);
+                map.setZoom(6);
+            }
+        }
+
+        // Initialize when Google Maps API is loaded
+        async function loadRouteMap() {
+            await google.maps.importLibrary("maps");
+            await google.maps.importLibrary("marker");
+            initRouteMap();
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', loadRouteMap);
+        } else {
+            loadRouteMap();
+        }
     </script>
     @endpush
 </x-app-layout>

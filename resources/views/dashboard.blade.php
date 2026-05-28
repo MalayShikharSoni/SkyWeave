@@ -171,48 +171,96 @@
 
     @push('scripts')
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Initialize map centered roughly on India (good default for the seed data)
-            const map = L.map('dashboard-map').setView([22.0, 79.0], 5);
+        function initDashboardMap() {
+            // SkyWeave dark theme style matching sky-950 aesthetic
+            const darkStyle = [
+                { elementType: 'geometry', stylers: [{ color: '#0c1a2e' }] },
+                { elementType: 'labels.text.stroke', stylers: [{ color: '#0c1a2e' }] },
+                { elementType: 'labels.text.fill', stylers: [{ color: '#4a7ab5' }] },
+                { featureType: 'administrative', elementType: 'geometry.stroke', stylers: [{ color: '#1e3a5f' }] },
+                { featureType: 'administrative.country', elementType: 'geometry.stroke', stylers: [{ color: '#2d5a8a' }] },
+                { featureType: 'administrative.land_parcel', stylers: [{ visibility: 'off' }] },
+                { featureType: 'administrative.province', elementType: 'geometry.stroke', stylers: [{ color: '#1e3a5f' }] },
+                { featureType: 'landscape', elementType: 'geometry', stylers: [{ color: '#0f2240' }] },
+                { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+                { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#162d50' }] },
+                { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#1a3460' }] },
+                { featureType: 'road', elementType: 'labels', stylers: [{ visibility: 'off' }] },
+                { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#1a3a65' }] },
+                { featureType: 'transit', stylers: [{ visibility: 'off' }] },
+                { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#071525' }] },
+                { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#1a3a5c' }] },
+            ];
 
-            // Add a dark matter tile layer (CartoDB Dark Matter)
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-                subdomains: 'abcd',
-                maxZoom: 20
-            }).addTo(map);
+            const map = new google.maps.Map(document.getElementById('dashboard-map'), {
+                center: { lat: 22.0, lng: 79.0 },
+                zoom: 5,
+                styles: darkStyle,
+                disableDefaultUI: false,
+                zoomControl: true,
+                mapTypeControl: false,
+                streetViewControl: false,
+                fullscreenControl: false,
+                backgroundColor: '#0c1a2e',
+            });
 
-            // Layer Groups
-            const waypointsLayer = L.layerGroup().addTo(map);
-            const navaidsLayer = L.layerGroup().addTo(map);
-            const routesLayer = L.layerGroup().addTo(map);
+            // Layer storage
+            const layers = {
+                waypoints: [],
+                navaids: [],
+                routes: [],
+            };
 
             // Toggle logic from checkboxes
             window.addEventListener('toggle-map-layer', (e) => {
                 const layerName = e.detail.layer;
-                const checkbox = document.querySelector(`input[onchange*="${layerName}"]`) || event.target;
+                const checkbox = e.target;
                 const isChecked = checkbox.checked;
 
-                if (layerName === 'waypoints') isChecked ? map.addLayer(waypointsLayer) : map.removeLayer(waypointsLayer);
-                if (layerName === 'navaids') isChecked ? map.addLayer(navaidsLayer) : map.removeLayer(navaidsLayer);
-                if (layerName === 'routes') isChecked ? map.addLayer(routesLayer) : map.removeLayer(routesLayer);
+                if (layers[layerName]) {
+                    layers[layerName].forEach(item => {
+                        item.setMap(isChecked ? map : null);
+                    });
+                }
             });
+
+            // Helper: create SVG circle icon as data URL
+            function createCircleIcon(fillColor, strokeColor, radius, filled = true) {
+                const size = radius * 2 + 4;
+                const cx = size / 2;
+                const cy = size / 2;
+                const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
+                    <circle cx="${cx}" cy="${cy}" r="${radius}" fill="${filled ? fillColor : 'transparent'}" stroke="${strokeColor}" stroke-width="${filled ? 1 : 2}"/>
+                </svg>`;
+                return {
+                    url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
+                    scaledSize: new google.maps.Size(size, size),
+                    anchor: new google.maps.Point(cx, cy),
+                };
+            }
+
+            // Shared InfoWindow (only one open at a time)
+            const infoWindow = new google.maps.InfoWindow();
 
             // Fetch and render Waypoints
             fetch('{{ route("api.map.waypoints") }}')
                 .then(res => res.json())
                 .then(data => {
                     data.forEach(wp => {
-                        const marker = L.circleMarker([wp.latitude, wp.longitude], {
-                            radius: 4,
-                            fillColor: '#38bdf8', // accent
-                            color: '#0ea5e9',
-                            weight: 1,
-                            opacity: 1,
-                            fillOpacity: 0.8
+                        const marker = new google.maps.Marker({
+                            position: { lat: parseFloat(wp.latitude), lng: parseFloat(wp.longitude) },
+                            map: map,
+                            icon: createCircleIcon('#38bdf8', '#0ea5e9', 4, true),
+                            title: wp.identifier,
                         });
-                        marker.bindTooltip(`<b>${wp.identifier}</b><br><span style="color:#8aa4d0">${wp.type}</span>`);
-                        marker.addTo(waypointsLayer);
+
+                        marker.addListener('mouseover', () => {
+                            infoWindow.setContent(`<div style="font-family:Inter,sans-serif;font-size:12px;color:#e0f2fe;"><b>${wp.identifier}</b><br><span style="color:#8aa4d0">${wp.type}</span></div>`);
+                            infoWindow.open(map, marker);
+                        });
+                        marker.addListener('mouseout', () => infoWindow.close());
+
+                        layers.waypoints.push(marker);
                     });
                 });
 
@@ -221,21 +269,25 @@
                 .then(res => res.json())
                 .then(data => {
                     data.forEach(nav => {
-                        let color = '#10b981'; // default VOR green
+                        let color = '#10b981'; // VOR green
                         if (nav.type === 'NDB') color = '#f97316';
                         else if (nav.type === 'TACAN') color = '#ec4899';
                         else if (nav.type === 'DME') color = '#6366f1';
 
-                        const marker = L.circleMarker([nav.latitude, nav.longitude], {
-                            radius: 6,
-                            fillColor: 'transparent',
-                            color: color,
-                            weight: 2,
-                            opacity: 1
+                        const marker = new google.maps.Marker({
+                            position: { lat: parseFloat(nav.latitude), lng: parseFloat(nav.longitude) },
+                            map: map,
+                            icon: createCircleIcon('transparent', color, 6, false),
+                            title: nav.identifier,
                         });
-                        
-                        marker.bindTooltip(`<b>${nav.identifier}</b><br><span style="color:${color}">${nav.type}</span><br><span style="color:#8aa4d0">${nav.name}</span>`);
-                        marker.addTo(navaidsLayer);
+
+                        marker.addListener('mouseover', () => {
+                            infoWindow.setContent(`<div style="font-family:Inter,sans-serif;font-size:12px;color:#e0f2fe;"><b>${nav.identifier}</b><br><span style="color:${color}">${nav.type}</span><br><span style="color:#8aa4d0">${nav.name}</span></div>`);
+                            infoWindow.open(map, marker);
+                        });
+                        marker.addListener('mouseout', () => infoWindow.close());
+
+                        layers.navaids.push(marker);
                     });
                 });
 
@@ -245,21 +297,56 @@
                 .then(data => {
                     data.forEach(route => {
                         if (route.waypoints.length < 2) return;
-                        
-                        const latLngs = route.waypoints.map(wp => [wp.latitude, wp.longitude]);
-                        
-                        const polyline = L.polyline(latLngs, {
-                            color: '#f59e0b', // route warning amber
-                            weight: 2,
-                            opacity: 0.7,
-                            dashArray: '5, 5'
+
+                        const path = route.waypoints.map(wp => ({
+                            lat: parseFloat(wp.latitude),
+                            lng: parseFloat(wp.longitude),
+                        }));
+
+                        const polyline = new google.maps.Polyline({
+                            path: path,
+                            geodesic: true,
+                            strokeColor: '#f59e0b',
+                            strokeOpacity: 0.7,
+                            strokeWeight: 2,
+                            map: map,
+                            icons: [{
+                                icon: { path: 'M 0,-1 0,1', strokeOpacity: 1, scale: 2 },
+                                offset: '0',
+                                repeat: '12px',
+                            }],
                         });
-                        
-                        polyline.bindTooltip(`<b>Route ${route.route_name}</b>`);
-                        polyline.addTo(routesLayer);
+                        // Make the base line transparent for dash effect
+                        polyline.setOptions({ strokeOpacity: 0 });
+
+                        // Add hover tooltip for route name
+                        const midIdx = Math.floor(route.waypoints.length / 2);
+                        const midPoint = { lat: parseFloat(route.waypoints[midIdx].latitude), lng: parseFloat(route.waypoints[midIdx].longitude) };
+
+                        polyline.addListener('mouseover', (e) => {
+                            infoWindow.setContent(`<div style="font-family:Inter,sans-serif;font-size:12px;color:#e0f2fe;"><b>Route ${route.route_name}</b></div>`);
+                            infoWindow.setPosition(e.latLng || midPoint);
+                            infoWindow.open(map);
+                        });
+                        polyline.addListener('mouseout', () => infoWindow.close());
+
+                        layers.routes.push(polyline);
                     });
                 });
-        });
+        }
+
+        // Initialize when Google Maps API is loaded
+        async function loadDashboardMap() {
+            await google.maps.importLibrary("maps");
+            await google.maps.importLibrary("marker");
+            initDashboardMap();
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', loadDashboardMap);
+        } else {
+            loadDashboardMap();
+        }
     </script>
     @endpush
         </div>

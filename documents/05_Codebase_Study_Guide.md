@@ -64,7 +64,7 @@ This is where the actual action happens. The Controller grabs data from the Mode
 | **4.1** | `WaypointController.php` | A standard CRUD controller. Look at `index()` (fetching data) and `store()` (saving data). |
 | **4.2** | `DraftRouteController.php` | Look at how the session is manipulated without touching the database (`session(['draft_route.waypoints' => ...])`). |
 | **4.3** | `ATSRouteController.php` | Look at the `store()` method. Notice how `DB::transaction()` is used to save the route and immediately use `sync()` to insert data into the pivot table. |
-| **4.4** | `MapApiController.php` | Notice how it returns `response()->json()` instead of views. This is the bridge for Leaflet.js. |
+| **4.4** | `MapApiController.php` | Notice how it returns `response()->json()` instead of views. This is the data bridge consumed by the Google Maps JavaScript API on the frontend. |
 
 ---
 
@@ -73,12 +73,12 @@ Now you see what the user sees. Look in `resources/views/`.
 
 | Sequence | File Path | What to look for |
 | :--- | :--- | :--- |
-| **5.1** | `layouts/app.blade.php` | The master layout. Notice the `<slot>` tags where the page content is injected. |
+| **5.1** | `layouts/app.blade.php` | The master layout. Notice the `<slot>` tags where the page content is injected. Also observe the **Google Maps bootstrap loader** script — a minified self-executing function that loads the API asynchronously and makes `google.maps.importLibrary()` available. The API key is injected server-side via `config('services.google_maps.key')`. |
 | **5.2** | `routes/index.blade.php` | See how `@foreach ($routes as $route)` is used to loop through data passed from the `ATSRouteController`. |
 
 ---
 
-### Step 6: The Interactive UI (Alpine.js & Leaflet.js)
+### Step 6: The Interactive UI (Alpine.js & Google Maps JavaScript API)
 Finally, investigate how the views are made reactive without refreshing the page.
 
 > [!TIP]
@@ -88,8 +88,25 @@ Finally, investigate how the views are made reactive without refreshing the page
 | Sequence | File Path | What to look for |
 | :--- | :--- | :--- |
 | **6.1** | `routes/create.blade.php` | Scroll to the bottom and read the `routeBuilder()` function. Understand how Alpine.js creates the `routeWaypoints` array in the browser memory to handle re-ordering without hitting the server. |
-| **6.2** | `dashboard.blade.php` | Scroll to the bottom. Read the Leaflet.js integration. Follow the code where `fetch()` calls your `MapApiController`, parses the JSON, and loops through the data to draw `L.circleMarker` and `L.polyline`. |
+| **6.2** | `dashboard.blade.php` | Scroll to the bottom. Read the Google Maps integration inside `initDashboardMap()`. Follow the code where `fetch()` calls your `MapApiController`, parses the JSON, and loops through the data to create `google.maps.Marker` (with SVG circle icons) and `google.maps.Polyline` objects. Notice the **dark theme JSON style array** and how layers are toggled using `setMap(map)` / `setMap(null)`. |
+| **6.3** | `routes/show.blade.php` | Read the `initRouteMap()` function. Notice the custom `WaypointLabel` class that extends `google.maps.OverlayView` to create permanent floating labels next to each waypoint marker. |
+| **6.4** | `resources/css/app.css` | Look at the "Google Maps Dark Theme Overrides" section at the bottom. See how CSS targets `.gm-style-iw-*` classes to restyle InfoWindow popups to match SkyWeave's dark palette. |
+
+---
+
+### Step 7: Environment & Configuration
+Understand how external services are configured securely.
+
+| Sequence | File Path | What to look for |
+| :--- | :--- | :--- |
+| **7.1** | `.env` | Look at `GOOGLE_MAPS_API_KEY` — this is the secret key that authenticates requests to the Google Maps API. It should never be committed to Git. |
+| **7.2** | `config/services.php` | See how `env('GOOGLE_MAPS_API_KEY')` is wrapped in a config array, making it accessible via `config('services.google_maps.key')` throughout the application. |
+
+---
 
 ### Final Advice for Your Presentation
 If your teacher asks you to **"Show me how X works"**, follow the sequence in reverse if debugging, or forwards if explaining:
-*User clicks button (View) -> Hits URL (Route) -> Triggers Logic (Controller) -> Queries Data (Model/Database).*
+*User clicks button (View) → Hits URL (Route) → Triggers Logic (Controller) → Queries Data (Model/Database).*
+
+**For the map specifically**, the flow is:
+*Page loads → Google Maps bootstrap loader runs → `importLibrary()` resolves → `initDashboardMap()` creates the Map → `fetch()` calls hit `MapApiController` → JSON returned → Markers and Polylines drawn on map.*

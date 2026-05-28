@@ -44,7 +44,7 @@ SkyWeave is intended to function as a serious operational and educational aviati
 | Architecture Pattern | MVC |
 | Frontend Templating | Laravel Blade |
 | Styling | TailwindCSS |
-| Mapping Library | Leaflet.js or Mapbox |
+| Mapping Library | Google Maps JavaScript API |
 | Database | PostgreSQL or MySQL |
 | ORM | Laravel Eloquent |
 | Authentication | Laravel Breeze or Jetstream |
@@ -85,15 +85,18 @@ SkyWeave is intended to function as a serious operational and educational aviati
 
 ---
 
-## 3.3 Interactive Map Features
+## 3.3 Interactive Map Features (Google Maps JavaScript API)
 
 ### Features
-- Zoom and pan
-- Polyline route rendering
-- Waypoint clustering
-- Coordinate popups
-- Dynamic filtering
-- Tooltip overlays
+- Zoom, pan, and smooth vector rendering
+- Polyline route rendering with dashed amber lines
+- SVG circle markers for waypoints and NAVAIDs
+- Custom dark JSON style array matching SkyWeave's premium aesthetic
+- InfoWindow tooltip overlays on hover
+- Real-time layer toggling (Waypoints / NAVAIDs / Routes)
+- Permanent waypoint labels on route detail view via OverlayView
+- Accurate geopolitical boundaries (Google's authoritative map data)
+- Async API loading via bootstrap loader pattern
 
 ---
 
@@ -331,14 +334,26 @@ session([
 
 ---
 
-# 9. Mapping API Integration
+# 9. Mapping API Integration (Google Maps JavaScript API)
 
-## Frontend Requests
+## Configuration
+
+The Google Maps API key is managed via Laravel's config system:
+
+| Layer | Location | Value |
+|---|---|---|
+| Environment | `.env` | `GOOGLE_MAPS_API_KEY=AIzaSy...` |
+| Config | `config/services.php` | `'google_maps' => ['key' => env('GOOGLE_MAPS_API_KEY')]` |
+| Template | `layouts/app.blade.php` | `config('services.google_maps.key')` |
+
+The API is loaded asynchronously using Google's official **Dynamic Library Import** bootstrap loader, ensuring the page renders immediately while the map library loads in the background.
+
+## Internal API Endpoints
 
 ```plaintext
-GET /api/map/waypoints
-GET /api/map/navaids
-GET /api/map/routes
+GET /api/map/waypoints    → google.maps.Marker (SVG circle icons)
+GET /api/map/navaids      → google.maps.Marker (color-coded hollow circles)
+GET /api/map/routes       → google.maps.Polyline (dashed amber lines)
 ```
 
 ---
